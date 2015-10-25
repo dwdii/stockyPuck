@@ -67,7 +67,8 @@ def handle_data(context, data):
     mcResultsPd = pd.Series(mcResults)
 
     # What is the price we predict for tomorrow?
-    predictedPrice = mcResultsPd.median()
+    # Using some summary statistic of the individual Monte Carlo iteration results.
+    predictedPrice = mcResultsPd.mean()
 
     # Trading logic
     if predictedPrice > curPrice:
