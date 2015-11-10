@@ -13,6 +13,8 @@ import pandas as pd
 import pytz
 from datetime import datetime
 
+import kellyCriterion
+
 
 class MonteCarloTradingAlgorithm(TradingAlgorithm):
 
@@ -20,6 +22,7 @@ class MonteCarloTradingAlgorithm(TradingAlgorithm):
     def initialize(self):
 
         self.i = 0
+        self.kelly = kellyCriterion.KellyCriterion()
         self.mcHistoryDays = 10
         self.mcIterations = 100
 
@@ -86,21 +89,22 @@ class MonteCarloTradingAlgorithm(TradingAlgorithm):
         # What is the price we predict for tomorrow?
         # Using some summary statistic of the individual Monte Carlo iteration results.
         predictedPrice = mcResultsPd.mean()
-        low = mcResultsPd.min()
-        high = mcResultsPd.max()
-        expLoss = curPrice - low
-        expGain = high - curPrice
-        diff = (predictedPrice - curPrice) / curPrice;
+
+
+        wagerFrac = self.kelly.WagerFraction(priceDiffs, curPrice, predictedPrice)
+        shares = (self.portfolio.cash * wagerFrac) / curPrice
+        #low = mcResultsPd.min()
+        #high = mcResultsPd.max()
+        #expLoss = curPrice - low
+        #expGain = high - curPrice
+        #diff = (predictedPrice - curPrice) / curPrice;
 
         # Trading logic
-        if expGain > expLoss:
+        if shares > 0:
             # order_target orders as many shares as needed to
             # achieve the desired number of shares.
-            self.order(sym, 100 * diff)
+            self.order(sym, shares)
             #print("Buying up to 100 shares")
-        elif expGain < expLoss:
-            self.order(sym, - (100 * diff))
-            #print("Selling down to 0 shares")
 
         # Save values for later inspection
         self.record(eqSymbol, data[sym].price,
