@@ -15,9 +15,7 @@ from datetime import datetime
 
 import kellyCriterion
 
-
 class MonteCarloTradingAlgorithm(TradingAlgorithm):
-
 
     def initialize(self):
 
@@ -59,6 +57,7 @@ class MonteCarloTradingAlgorithm(TradingAlgorithm):
         :param data: The data.
         :return:
         """
+
         # Skip first X days to get full windows
         self.i += 1
         if self.i < self.mcHistoryDays:
@@ -90,21 +89,12 @@ class MonteCarloTradingAlgorithm(TradingAlgorithm):
         # Using some summary statistic of the individual Monte Carlo iteration results.
         predictedPrice = mcResultsPd.mean()
 
-
         wagerFrac = self.kelly.WagerFraction(priceDiffs, curPrice, predictedPrice)
         shares = (self.portfolio.cash * wagerFrac) / curPrice
-        #low = mcResultsPd.min()
-        #high = mcResultsPd.max()
-        #expLoss = curPrice - low
-        #expGain = high - curPrice
-        #diff = (predictedPrice - curPrice) / curPrice;
 
-        # Trading logic
-        if shares > 0:
-            # order_target orders as many shares as needed to
-            # achieve the desired number of shares.
-            self.order(sym, shares)
-            #print("Buying up to 100 shares")
+        # this function auto balances our cash/stock mix based on a fractional amount we input.
+        # anything outside the range of [-1.0, 1.0] will utilize financial leverage
+        self.order_target_percent(sym,wagerFrac)
 
         # Save values for later inspection
         self.record(eqSymbol, data[sym].price,
@@ -121,29 +111,20 @@ class MonteCarloTradingAlgorithm(TradingAlgorithm):
         perf[eqSymbol].plot(ax=ax2)
         perf[['mc_price']].plot(ax=ax2)
 
-        #perf_trans = perf.ix[[t != [] for t in perf.transactions]]
-        #buys = perf_trans.ix[[t[0]['amount'] > 0 for t in perf_trans.transactions]]
-        #sells = perf_trans.ix[
-        #    [t[0]['amount'] < 0 for t in perf_trans.transactions]]
-        #ax2.plot(buys.index, perf.mc_price.ix[buys.index],
-        #         '^', markersize=10, color='m')
-        #ax2.plot(sells.index, perf.mc_price.ix[sells.index],
-        #        'v', markersize=10, color='k')
         ax2.set_ylabel('price in $')
         plt.legend(loc=0)
         plt.show()
 
 if __name__ == "__main__":
     # Load data manually from Yahoo! finance
-    eqSymbol = 'AAPL'
-    start = datetime(2011, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = datetime(2012, 1, 1, 0, 0, 0, 0, pytz.utc)
+    eqSymbol = 'SPY'
+    start = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
     data = load_bars_from_yahoo(stocks=[eqSymbol], start=start,
                                 end=end)
 
     # Create algorithm object
     algo_obj = MonteCarloTradingAlgorithm()
-
 
     # Run algorithm
     perf_manual = algo_obj.run(data)

@@ -2,6 +2,10 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.transforms import MovingAverage, batch_transform
 from zipline.utils.factory import load_from_yahoo
 from zipline.finance import commission,slippage
+from zipline.utils.factory import load_bars_from_yahoo
+import pytz
+from datetime import datetime
+import kellyCriterion
 
 class HighFreqFilterAlgo(TradingAlgorithm):
     """Low pass filter algorithm. (Filters out high frequencies)
@@ -17,16 +21,26 @@ class HighFreqFilterAlgo(TradingAlgorithm):
     def initialize(self):
         # To keep track of whether we invested in the stock or not
         self.invested = False
-
-        self.set_commission(commission.PerTrade(cost=0))
         self.set_slippage(slippage.FixedSlippage(spread=0.0))
 
         self.buy_orders = []
         self.sell_orders = []
 
-        self.tradingdays = 0;
+        self.tradingdays = 0
 
-    def handle_data(self, data):
+        self.i = 0
+        self.kelly = kellyCriterion.KellyCriterion()
+        self.mcHistoryDays = 10
+        self.mcIterations = 100
+
+        self.add_history(self.mcHistoryDays, '1d', 'price')
+
+
+    def _handle_data(self, context, data):
+        self.i += 1
+        if self.i < self.mcHistoryDays:
+            return
+
         runningPrices.append(data[symbol].price)
         s = runningPrices
         if(self.tradingdays > 252):
@@ -58,21 +72,20 @@ class HighFreqFilterAlgo(TradingAlgorithm):
             currSmoothedPrice = s_filt[-1]
             runningFilteredPrices.append(currSmoothedPrice)
 
-            # if there are 20% discrepancies between the market price and the "true"
-            # price, buy or sell/short accordingly
-            if (data[symbol].price / (1+buysellthresh) > currSmoothedPrice):
-                self.order(symbol, -transactionAmt) # if no stock owned, a negative order will short the stock
-                self.invested = False
-                self.sell_orders.append(data[symbol].datetime)
-                print "{dt}: Selling {amt} shares.".format(dt=data[symbol].datetime, amt=transactionAmt)
-            elif (data[symbol].price * (1+buysellthresh) < currSmoothedPrice):
-                self.order(symbol, transactionAmt)
-                self.invested = True
-                self.buy_orders.append(data[symbol].datetime)
-                print "{dt}: Buying {amt} shares.".format(dt=data[symbol].datetime, amt=transactionAmt)
+            self.record(symbol, data[symbol].price,
+               'fft_price', currSmoothedPrice)
+
+            histData = self.history(self.mcHistoryDays, '1d', 'price')
+            curPrice = histData[symbol][-1]
+            priceDiffs = histData[symbol].diff()
+
+            wagerFrac = self.kelly.WagerFraction(priceDiffs, curPrice, currSmoothedPrice)
+            self.order_target_percent(symbol,wagerFrac)
 
         else:
             runningFilteredPrices.append(data[symbol].price)
+            self.record(symbol, data[symbol].price,
+               'fft_price', data[symbol].price)
 
         self.tradingdays = self.tradingdays +1
 
@@ -94,6 +107,20 @@ class HighFreqFilterAlgo(TradingAlgorithm):
 
         return filteredSignal
 
+    def analyze(context, perf):
+        fig = plt.figure()
+        ax1 = fig.add_subplot(211)
+        perf.portfolio_value.plot(ax=ax1)
+        ax1.set_ylabel('portfolio value in $')
+
+        ax2 = fig.add_subplot(212)
+        perf[symbol].plot(ax=ax2)
+        perf[['fft_price']].plot(ax=ax2)
+
+        ax2.set_ylabel('price in $')
+        plt.legend(loc=0)
+        plt.show()
+
 runningPrices = []
 runningFilteredPrices = []
 symbol = "AAPL"
@@ -108,33 +135,16 @@ if __name__ == "__main__":
     from scipy.fftpack import fftfreq
 
     # load data from yahoo finance
-    data = load_from_yahoo(stocks=[symbol]);
+    start = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
+    data = load_bars_from_yahoo(stocks=[symbol], start=start,
+                                end=end)
 
     filtalgo = HighFreqFilterAlgo()
     results = filtalgo.run(data)
 
-    # plot chart showing the actual signal vs the alogo's
-    # best guess at the time of the stock's underlying "true"
-    # price
-    plt.plot(runningFilteredPrices)
-    plt.plot(runningPrices)
-    plt.legend(['Filtered Signal','Original Signal'])
-    plt.show()
+    print(results)
 
-    fig = plt.figure()
-    ax1 = plt.subplot(211)
-    ax1.set_title("Results: Buy and Sell/Short Orders")
-    data[symbol].plot(ax=ax1)
-    plt.plot(filtalgo.buy_orders, data[symbol].ix[filtalgo.buy_orders], '^', c='m', markersize=10, label='buy')
-    plt.plot(filtalgo.sell_orders, data[symbol].ix[filtalgo.sell_orders], 'v', c='k', markersize=10, label='sell/short')
-    plt.legend(loc=0)
-
-    ax2 = plt.subplot(212)
-    ax2.set_title("Portfolio Value ($)")
-    results.portfolio_value.plot(ax=ax2)
-
-    fig.tight_layout()
-    plt.show()
 
 
 
