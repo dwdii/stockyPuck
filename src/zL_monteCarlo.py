@@ -82,7 +82,7 @@ class MonteCarloTradingAlgorithm(TradingAlgorithm):
         for i in range(0, self.mcIterations, 1):
             res = self.monteCarloIteration(meanDiff, sdDiff, curPrice)
             mcResults.append(res)
-        # Convert to a panadas series so we can use the statistics functions.
+        # Convert to a pandas series so we can use the statistics functions.
         mcResultsPd = pd.Series(mcResults)
 
         # What is the price we predict for tomorrow?

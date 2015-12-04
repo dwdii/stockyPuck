@@ -79,6 +79,11 @@ def monteCarloIteration(self, mean, std, start):
 
 ## Findings
 
+## Findings: Monte Carlo Simulation
+
+![Monte Carlo Simulation Results Example](.\figures\MonteCarlo-ResultExample.png)
+
+
 
 ## Thank you
 
