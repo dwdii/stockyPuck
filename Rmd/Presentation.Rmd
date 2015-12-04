@@ -1,0 +1,86 @@
+---
+title: "stockyPuck Models for Zipline.io"
+author: "Daniel Dittenhafer & Justin Hink"
+date: "December 10, 2015"
+output: ioslides_presentation
+subtitle: IS609 Mathematical Modeling - CUNY
+---
+
+## Agenda
+
+-	The Problem
+-	Methodology
+-	Details
+-	Findings
+
+
+## Analysis of the problem.
+
+- Investment Decisions
+- Future Price Prediction
+- Algorithmic Trading
+
+## Methodology
+
+- Fast Fourier Transform
+- Monte Carlo Simulation
+- [Kelly Criterion](http://www.investopedia.com/articles/trading/04/091504.asp?layout=infini&v=2A)
+
+## Details: Fast Fourier Transform
+
+
+## Details: Monte Carlo Simulation
+
+- Price Differences for past 10 days
+- Mean Difference, Standard Deviation
+- Random Sample from Normal distribution x 100
+- Mean from Random Sample set
+
+## Details: Monte Carlo Simulation
+
+```{python, eval=FALSE}
+priceDiffs = histData[sym].diff()
+meanDiff = priceDiffs.mean()
+sdDiff = priceDiffs.std()
+
+mcResults = list()
+for i in range(0, self.mcIterations, 1):
+    res = self.monteCarloIteration(meanDiff, sdDiff, curPrice)
+    mcResults.append(res)
+# Convert to a pandas series so we can use the statistics functions.
+mcResultsPd = pd.Series(mcResults)
+
+# What is the price we predict for tomorrow?
+predictedPrice = mcResultsPd.mean()
+```
+
+## Details: Monte Carlo Simulation
+
+```{python, eval=FALSE}
+def monteCarloIteration(self, mean, std, start):
+    import random
+    sample = list()
+    for i in range(0, self.mcFutureDays, 1):
+        sample.append(random.gauss(mean, std))
+
+    curPrice = start
+    walk = list()
+    for d in sample:
+        newPrice = curPrice + d
+        curPrice = newPrice
+        walk.append(curPrice)
+
+    return walk[-1]
+```
+
+## Details: Kelly Criterion
+
+
+
+## Findings
+
+
+## Thank you
+
+- Questions?
+
