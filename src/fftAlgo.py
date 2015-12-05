@@ -88,6 +88,7 @@ class HighFreqFilterAlgo(TradingAlgorithm):
                'fft_price', data[symbol].price)
 
         self.tradingdays = self.tradingdays +1
+        print(context.portfolio.portfolio_value)
 
     # filter the signal with simple low pass filter
     def filter_rule(self, x,freq):
@@ -123,7 +124,7 @@ class HighFreqFilterAlgo(TradingAlgorithm):
 
 runningPrices = []
 runningFilteredPrices = []
-symbol = "AAPL"
+symbol = "GS"
 transactionAmt = 200
 buysellthresh = 0.2 #(20%)
 if __name__ == "__main__":
@@ -143,8 +144,8 @@ if __name__ == "__main__":
     filtalgo = HighFreqFilterAlgo()
     results = filtalgo.run(data)
 
-    print(results)
-
+    #print(results)
+    print(results.ending_value[-1])
 
 
 

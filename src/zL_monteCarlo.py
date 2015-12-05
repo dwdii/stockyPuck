@@ -64,7 +64,7 @@ class MonteCarloTradingAlgorithm(TradingAlgorithm):
             return
 
         # What day are we currently processing?
-        print(self.datetime)
+        #print(self.datetime)
 
         sym = symbol(eqSymbol)
 
@@ -100,6 +100,8 @@ class MonteCarloTradingAlgorithm(TradingAlgorithm):
         self.record(eqSymbol, data[sym].price,
                'mc_price', predictedPrice)
 
+        print(context.portfolio.portfolio_value)
+
 
     def analyze(context, perf):
         fig = plt.figure()
@@ -117,7 +119,7 @@ class MonteCarloTradingAlgorithm(TradingAlgorithm):
 
 if __name__ == "__main__":
     # Load data manually from Yahoo! finance
-    eqSymbol = 'SPY'
+    eqSymbol = 'YHOO'
     start = datetime(2010, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = datetime(2014, 1, 1, 0, 0, 0, 0, pytz.utc)
     data = load_bars_from_yahoo(stocks=[eqSymbol], start=start,
@@ -129,4 +131,5 @@ if __name__ == "__main__":
     # Run algorithm
     perf_manual = algo_obj.run(data)
 
-    print(perf_manual)
+    #print(perf_manual)
+    #print(perf_manual.ending_value[-1])
