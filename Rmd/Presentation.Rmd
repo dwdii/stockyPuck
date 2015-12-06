@@ -5,6 +5,22 @@ date: "December 10, 2015"
 output: ioslides_presentation
 subtitle: IS609 Mathematical Modeling - CUNY
 ---
+```{r, message=FALSE, echo=FALSE}
+library(XLConnect)
+library(knitr)
+library(reshape2)
+library(ggplot2)
+library(plyr)
+
+# My ggplot theme
+myTheme <- theme(axis.ticks=element_blank(),
+                 axis.title=element_text(size="10"),
+                  panel.border = element_rect(color="gray", fill=NA), 
+                  panel.background=element_rect(fill="#FBFBFB"), 
+                  panel.grid.major.y=element_line(color="white", size=0.5), 
+                  panel.grid.major.x=element_line(color="white", size=0.5),
+                  plot.title=element_text(size="10"))
+```
 
 ## Agenda
 
@@ -26,6 +42,12 @@ subtitle: IS609 Mathematical Modeling - CUNY
 - Monte Carlo Simulation
 - [Kelly Criterion](http://www.investopedia.com/articles/trading/04/091504.asp?layout=infini&v=2A)
 
+## Methodology: Structure {.smaller}
+
+![2+1 Models](.\figures\2-Models-sm.png)
+
+- Position Sizer: A variation on Kelly Criterion
+
 ## Details: Fast Fourier Transform
 
 
@@ -34,7 +56,7 @@ subtitle: IS609 Mathematical Modeling - CUNY
 - Price Differences for past 10 days
 - Mean Difference, Standard Deviation
 - Random Sample from Normal distribution x 100
-- Mean from Random Sample set
+- Mean from Random Sample as Predicted Price
 
 ## Details: Monte Carlo Simulation
 
@@ -79,10 +101,195 @@ def monteCarloIteration(self, mean, std, start):
 
 ## Findings
 
+- Portfolio Starting Value: $100,000
+- Back test: Jan 1, 2010 - Jan 1, 2014 (4 years)
+- Variety of stocks and S&P500
+
 ## Findings: Monte Carlo Simulation
 
 ![Monte Carlo Simulation Results Example](.\figures\MonteCarlo-ResultExample.png)
 
+
+## Findings: Side by side {.smaller}
+
+```{r, message=FALSE, echo=FALSE}
+# Load the results data
+wb = loadWorkbook("../Test Results/results.xlsx")
+dfResults = readWorksheet(wb, sheet = "Sheet1", header = TRUE)
+# Melt to convert to a format friendly to ggplot for Algo bar chart
+dfResMeltedVal <- melt(dfResults, id.vars=c("Symbol", "Company"), 
+                    variable.name="Algorithm",
+                    measure.vars=c("FFT_EndPortfolioValue", "MC_EndPortfolioValue"))
+# Melt to convert to a format friendly to ggplot for another Algo bar chart
+dfResMeltedRoi <- melt(dfResults, id.vars=c("Symbol", "Company"), 
+                    variable.name="Algorithm",
+                    measure.vars=c("FFT_Annual.ROI", "MC_Annual.ROI"))
+
+#summary(dfResults)
+```
+
+```{r, echo=FALSE}
+kable(dfResults[, c("Symbol", "Company", "FFT_EndPortfolioValue", "MC_EndPortfolioValue")], 
+      format.args=list(big.mark=","))
+```
+
+## Findings: Visually Side by side
+
+```{r, message=FALSE, echo=FALSE}
+g1 <- ggplot(dfResMeltedVal) + 
+  geom_bar(aes(x=Symbol, y=value, fill=Algorithm), stat="identity", position="dodge") +
+  labs(title="Algorithm Ending Value by Symbol") +
+  myTheme
+g1
+```
+
+## Findings: Visually Side by side
+
+```{r, message=FALSE, echo=FALSE, eval=TRUE}
+g1 <- ggplot(dfResMeltedRoi) + 
+  geom_bar(aes(x=Symbol, y=value, fill=Algorithm), stat="identity", position="dodge") +
+  labs(title="Algorithm Return on Investment by Symbol") +
+  myTheme
+g1
+```
+
+## Findings: Statistically {.smaller}
+
+Raw Ending Value Statistics:
+
+```{r, message=FALSE, echo=FALSE}
+dfStats <- ddply(dfResMeltedVal, .(Algorithm), summarize,
+            median=median(value),
+            mean=mean(value), 
+            sd=sd(value),
+            n=length(value))
+
+kable(dfStats, format.args=list(big.mark=","))
+```
+
+Return on Investment Statistics:
+
+```{r, message=FALSE, echo=FALSE, eval=TRUE}
+dfStatsRoi <- ddply(dfResMeltedRoi, .(Algorithm), summarize,
+            median=median(value),
+            mean=mean(value), 
+            sd=sd(value))
+kable(dfStatsRoi, format.args=list(big.mark=","))
+```
+
+## Hypothesis Test
+
+\[H_0: \mu_{algo} = 100,000\]
+
+\[H_a: \mu_{algo} > 100,000\]
+
+\[\alpha = 0.05\]
+
+## Hypothesis Test: FFT Normality Check {.smaller}
+
+```{r, echo=FALSE}
+qqnorm(dfResults$FFT_EndPortfolioValue)
+qqline(dfResults$FFT_EndPortfolioValue) 
+```
+
+## Hypothesis Test: FFT Results {.smaller}
+
+```{r, echo=FALSE}
+fftStats <- dfStats[dfStats$Algorithm == "FFT_EndPortfolioValue",]
+mean <- fftStats$mean
+sd <- fftStats$sd
+n <- fftStats$n
+df <- n - 1
+# Compute t-test values and CI margin of error
+se <- sd / sqrt(n)
+tVal95 <- qt(0.975, df=df)
+me <- tVal95 * se
+# t score and p value
+tScore <- (mean - 100000) / se
+#tScore
+pVal <- pt(tScore, df, lower.tail=FALSE)
+#pVal
+```
+
+\[SE_{fft} = \frac{`r format(sd, scientific=FALSE, big.mark=",")`}{\sqrt{`r n`}} = `r format(se, scientific=FALSE, big.mark=",")`\]
+
+\[T_{fft} = \frac{`r format(mean, scientific=FALSE, big.mark=",")` - 100,000}{`r format(se, scientific=FALSE, big.mark=",")`} = `r format(tScore, scientific=FALSE)` \]
+
+p-value = \(`r format(pVal, scientific=FALSE)`  > 0.05\)
+
+95% Confidence Interval: \(`r format(mean, scientific=FALSE, big.mark=",")` \pm `r format(me, scientific=FALSE, big.mark=",")` = \)
+\(`r format(mean - me, scientific=FALSE, big.mark=",")`\) to \(`r format(mean + me, scientific=FALSE, big.mark=",")` \)
+
+Based on the p-value \(\approx `r round(pVal, 4)`\) and the 95%CI crossing the portfolio starting value, we accept the null hypothesis and conclude that the FFT model as written is not performing significantly better.
+
+## Hypothesis Test: MC Normality Check {.smaller}
+
+```{r, echo=FALSE}
+qqnorm(dfResults$MC_EndPortfolioValue)
+qqline(dfResults$MC_EndPortfolioValue) 
+```
+
+## Hypothesis Test: MC Results {.smaller}
+
+```{r, echo=FALSE}
+mcStats <- dfStats[dfStats$Algorithm == "MC_EndPortfolioValue",]
+mean <- mcStats$mean
+sd <- mcStats$sd
+n <- mcStats$n
+df <- n - 1
+# Compute t-test values and CI margin of error
+se <- sd / sqrt(n)
+tVal95 <- qt(0.975, df=df)
+me <- tVal95 * se
+# t score and p value
+tScore <- (mean - 100000) / se
+#tScore
+pVal <- pt(tScore, df, lower.tail=FALSE)
+#pVal
+```
+
+\[SE_{fft} = \frac{`r format(sd, scientific=FALSE, big.mark=",")`}{\sqrt{`r n`}} = `r format(se, scientific=FALSE, big.mark=",")`\]
+
+\[T_{fft} = \frac{`r format(mean, scientific=FALSE, big.mark=",")` - 100,000}{`r format(se, scientific=FALSE, big.mark=",")`} = `r format(tScore, scientific=FALSE)` \]
+
+p-value = \(`r format(pVal, scientific=FALSE)`  > 0.05\)
+
+95% Confidence Interval: \(`r format(mean, scientific=FALSE, big.mark=",")` \pm `r format(me, scientific=FALSE, big.mark=",")` = \)
+\(`r format(mean - me, scientific=FALSE, big.mark=",")`\) to \(`r format(mean + me, scientific=FALSE, big.mark=",")` \)
+
+Based on the p-value \(\approx `r round(pVal, 4)`\) and the 95%CI crossing the portfolio starting value, we accept the null hypothesis and conclude that the Monte Carlo model as written is not performing significantly better.
+
+
+## Difference of Means Test
+
+\[H_0: \mu_{fft} = \mu_{mc}\]
+
+\[H_a: \mu_{fft} > \mu_{mc}\]
+
+\[\alpha = 0.05\]
+
+## Difference of Means Test
+
+```{r, echo=FALSE}
+se_diff <- sqrt((fftStats$sd^2 / fftStats$n) + (mcStats$sd^2 / mcStats$n))
+mean_diff <- fftStats$mean - mcStats$mean
+tScore_diff <- (mean_diff - 0) / se_diff
+pVal <- pt(tScore_diff, df, lower.tail=FALSE)
+```
+
+\[SE_{\bar{x}_{fft} - \bar{x}_{mc}} = \sqrt{\frac{`r format(fftStats$sd, scientific=FALSE, big.mark=",")`^2}{`r fftStats$n`} + \frac{`r format(mcStats$sd, scientific=FALSE, big.mark=",")`^2}{`r mcStats$n`} } = `r format(se_diff, scientific=FALSE, big.mark=",")`\]
+
+\[T_{diff} = \frac{`r format(mean_diff, scientific=FALSE, big.mark=",")` - 0}{`r format(se_diff, scientific=FALSE, big.mark=",")`} = `r format(tScore_diff, scientific=FALSE)` \]
+
+p-value = \(`r format(pVal, scientific=FALSE)`  > 0.05\)
+
+Based on the p-value \(\approx `r round(pVal, 4)`\) we do not reject the null hypothesis and therefore conclude that the Fast Fourier Transform is not significantly better than the Monte Carlo Simulation.
+
+## Conclusions
+
+- Tuning
+- Improvement?
+- Combination? 
 
 
 ## Thank you
