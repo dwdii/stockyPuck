@@ -61,6 +61,7 @@ class HighFreqFilterAlgo(TradingAlgorithm):
             F_filt = self.getfilteredsignal(F,f)
             F_filt = np.array(F_filt)
 
+            # take inverse FFT to get smoothed time series signal
             s_filt = ifft(F_filt)
 
             # Remove Tail buffer from stock signal

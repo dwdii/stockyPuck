@@ -1,0 +1,201 @@
+'''
+The Kelly formula is a method to determine the optimal amount
+of leverage to give to a particular strategy.
+
+This algorithm assumes that going long on each security in the
+portfolio is an independent strategy and uses the Kelly formula
+to decide on the amount of capital allocated to each one.
+
+The Kelly formula can be simplified to;
+(mean excess return) / (variance of excess returns) for each stock.
+
+Or inverse(covariance matrix) * Mean Return vector if you do not assume
+the returns are independent of each other.
+
+This first run through doesn't use the excess returns.
+'''
+
+import numpy as np
+import pandas as pd
+from pytz import timezone
+from zipline.utils import tradingcalendar as calendar
+from zipline.api import order_target, record, symbol, history, add_history
+from zipline.algorithm import TradingAlgorithm
+from zipline.utils.factory import load_bars_from_yahoo
+import pytz
+from datetime import datetime
+
+
+class EventManager(object):
+    '''
+    Manager for timing the entry point of periodic events.
+
+    '''
+    def __init__(self,
+                 context,
+                 period=1,
+                 max_daily_hits=1,
+                 rule_func=None):
+        '''
+        :Parameters:
+            period: integer <default=1>
+                number of business days between events
+
+            max_daily_hits: integer <default=1>
+                upper limit on the number of times per day the event is triggered.
+                (trading controls could work for this too in some cases)
+
+            rule_func: function (returns a boolean) <default=None>
+                decision function for timimng an intraday entry point
+        '''
+        self.period = period
+        self.max_daily_hits = max_daily_hits
+        self.remaining_hits = max_daily_hits
+        self._rule_func = rule_func
+        self.next_event_date = None
+        self.market_open = None
+        self.market_close = None
+        self.context = context
+
+    @property
+    def todays_index(self):
+        dt = calendar.canonicalize_datetime(get_datetime())
+        return calendar.trading_days.searchsorted(dt)
+
+    def open_and_close(self, dt):
+        return calendar.open_and_closes.T[dt]
+
+    def signal(self, *args, **kwargs):
+        '''
+        Entry point for the rule_func
+        All arguments are passed to rule_func
+        '''
+        now = self.context.get_datetime()
+        dt = calendar.canonicalize_datetime(now)
+        if self.next_event_date is None:
+            self.next_event_date = dt
+            times = self.open_and_close(dt)
+            self.market_open = times['market_open']
+            self.market_close = times['market_close']
+        if now < self.market_open:
+            return False
+        if now == self.market_close:
+            self.set_next_event_date()
+        decision = self._rule_func(*args, **kwargs)
+        if decision:
+            self.remaining_hits -= 1
+            if self.remaining_hits <= 0:
+                self.set_next_event_date()
+        return decision
+
+    def set_next_event_date(self):
+        self.remaining_hits = self.max_daily_hits
+        tdays = calendar.trading_days
+        idx = self.todays_index + self.period
+        self.next_event_date = tdays[idx]
+        times = self.open_and_close(self.next_event_date)
+        self.market_open = times['market_open']
+        self.market_close = times['market_close']
+
+
+def entry_func(dt):
+    '''
+    Decision function for intraday entry point
+    '''
+    dt = dt.astimezone(timezone('US/Eastern'))
+    return dt.hour == 11 and dt.minute < 30
+
+
+# Conversion to make history columns sids with a workaround
+# for a bug that causes extra columns in history from time to time.
+sid_map = lambda data: {i.sid: i for i in data.iterkeys()}
+
+def map_columns(df, data):
+    mapping = sid_map(data)
+    mapped_cols = {}
+    for i in df:
+        if i in mapping:
+            mapped_cols[mapping[i]] = df[i]
+        else:
+            log.debug('sid(%s) missing from data!'%i)
+    return pd.DataFrame(mapped_cols)
+
+class KellyAlgorithm(TradingAlgorithm):
+    def initialize(context):
+
+        context.commission.cost = 0
+        # Account leverage - Final weights are multiplied by leverage / sum(|weights|)
+        # The kelly leverage is usually way to high to actually use
+        context.leverage = 2.5
+
+        # Set a scalar to limit the short exposure in the case of a negative Kelly result
+        context.short_pct = 0.7
+
+        # Set the number of securities to invest in
+        context.port_size = 25
+
+        # Set the holding period using EventManager
+        context.e_manager = EventManager(context, period=63, rule_func=entry_func)
+
+    def handle_data(context, data):
+        P = context.portfolio
+        pct_invested = P.positions_value / P.portfolio_value
+
+        record(pct_invested=pct_invested * 100)
+
+        if context.e_manager.signal(context.get_datetime()):
+
+            # Import history, we have to adjust for a bug that causes extra columns
+            # to show up in history sometimes.
+            prices = map_columns(history(200, '1d', 'price'), data)
+
+            R = prices.pct_change().dropna()
+
+            # Select securities by assuming all returns are statistically independent
+            # and calculate their Kelly leverage.
+            kelly = R.mean() / R.var()
+
+            # Drop any Nan values and sort in ascending order
+            kelly = kelly.dropna()
+            kelly.sort()
+            picks = kelly.tail(context.port_size)
+
+            # Assume a relationship between the securities and calculate the Kelly leverages
+            R = R[picks.index]
+            C_inv = np.linalg.inv(R.cov())
+
+            kelly = np.dot(C_inv, R.mean())
+            kelly = pd.Series(kelly, index=R.columns)
+
+            # Limit short exposure if the Kelly score is negative
+            kelly = kelly.apply(lambda x: max(x, context.short_pct * x))
+
+            # Adjust result to keep the account leverage constant
+            kelly *= (context.leverage / kelly.abs().sum())
+
+
+            log.info('\nNew Portfolio:\n%s'%kelly)
+
+            # Place orders and sell off any securities that were dropped.
+            for stock in data:
+                if stock in kelly.index:
+                    order_target_percent(stock, kelly[stock])
+                else:
+                    order_target(stock, 0)
+
+if __name__ == "__main__":
+    # Load data manually from Yahoo! finance
+    eqSymbol = 'GE'
+    start = datetime(2005, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = datetime(2012, 1, 1, 0, 0, 0, 0, pytz.utc)
+    data = load_bars_from_yahoo(stocks=[eqSymbol], start=start,
+                                end=end)
+
+    # Create algorithm object
+    algo_obj = KellyAlgorithm()
+
+
+    # Run algorithm
+    perf_manual = algo_obj.run(data)
+
+    print(perf_manual)

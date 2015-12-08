@@ -2,7 +2,7 @@
 title: "stockyPuck Models for Zipline.io"
 author: "Daniel Dittenhafer & Justin Hink"
 date: "December 10, 2015"
-output: ioslides_presentation
+output: beamer_presentation
 subtitle: IS609 Mathematical Modeling - CUNY
 ---
 ```{r, message=FALSE, echo=FALSE}
@@ -38,9 +38,16 @@ myTheme <- theme(axis.ticks=element_blank(),
 
 ## Methodology
 
-- Fast Fourier Transform
+- Fast Fourier Transform with Low Pass Filter
 - Monte Carlo Simulation
 - [Kelly Criterion](http://www.investopedia.com/articles/trading/04/091504.asp?layout=infini&v=2A)
+
+## Methodology: Structure {.smaller}
+
+ 1. Model the stock's, true price
+ 2. Compare with the market price
+ 3. Make buy/sell/short decision based on the computed difference in step 2
+     - in addition to current portfolio mix
 
 ## Methodology: Structure {.smaller}
 
@@ -50,6 +57,87 @@ myTheme <- theme(axis.ticks=element_blank(),
 
 ## Details: Fast Fourier Transform
 
+- Decomposition of a time series signal into the frequencies that it is comprised of
+
+- Also known as the frequency domain representation of a signal
+
+- Standard technique in the electrical engineering and signal processing worlds
+  
+$$
+\begin{aligned}
+F \{ g(t)\} =G(f)=\int _{ -\infty  }^{ \infty  }{ { g(t) }e^{ -2\pi ift }dt }  
+\end{aligned}
+$$
+
+## Example Signal Transformation 
+$$
+\begin{aligned}
+g(t)=sin(2\pi { f }_{ 1 }t)+\frac { 1 }{ 2 } sin(2\pi { f }_{ 2 }t) 
+\end{aligned}
+$$
+$$
+\begin{aligned}
+{ f }_{ 1 }=50Hz\\ { f }_{ 2 }=100Hz 
+\end{aligned}
+$$
+
+![Time Domain of a Sample Signal](.\figures\fdomainEx-sm.png)
+
+## Low Pass Filter
+
+- Another signal processing technique
+- Remove high frequency components of a signal
+- Result will be a smoother signal
+
+- Much easier to do in the frequency domain
+
+## FFT Trading Thesis
+
+- A stock chart is just a time series signal
+- it looks noisy
+- maybe if we filter out some of the high frequency noise we will be left with something closer to the stock's true price
+
+## Example FFT Filtered Signal
+![Smoothed Stock Ex](.\figures\smoothed_stock_ex.png)
+
+## Details: FFT Code
+
+```{python, eval=FALSE}
+  #get spectrum of signal with Fourier Transform using built in scipy method
+  F = fft(s)
+  
+  #filter high frequency components of signals
+  dt = 1/252.0
+  f = fftfreq(len(F),dt)  # get sample frequency in samples per year
+  
+  F_filt = self.getfilteredsignal(F,f)
+  F_filt = np.array(F_filt)
+  
+  # take inverse FFT to get smoothed time series signal
+  s_filt = ifft(F_filt)
+```
+
+## Details: High Pass Filter Code
+
+```{python, eval=FALSE}
+        if abs(freq)> (highCut+buff):
+            return 0
+        else:
+            return x
+```
+
+- Easy!
+- Time domain is more complex both conceptually and computationally
+$$
+\begin{aligned}
+O({ n }^{ 2 })\quad for\quad Time\quad Domain 
+\end{aligned}
+$$
+$$
+\begin{aligned}
+O(nlogn)\quad for\quad Freq\quad Domain 
+\end{aligned}
+$$
 
 ## Details: Monte Carlo Simulation
 
@@ -95,15 +183,49 @@ def monteCarloIteration(self, mean, std, start):
     return walk[-1]
 ```
 
-## Details: Kelly Criterion
+## Now What?
 
+- We now have a price gap
+- An Edge! (Maybe) 
+- What do we do with our edge?
+- How many stocks do we buy sell?
+
+## Kelly Criterion
+
+- A way of maximizing growth by balancing a portfolio
+- First made famous by mathematically inclined Blackjack players
+- One of these players, Ed Thorp, first brought the technique to the market in the 1970s
+- Rather complex with a porfolio of multiple stocks (Quadratic Programming Problem)
+- Simplified considerably in our situation (1 stock + cash mix)
+
+## Kelly Criterion
+$$
+\begin{aligned}
+{ f }^{ * }\quad =\quad \frac { p(b+1)-1 }{ b }
+\end{aligned}
+$$
+$$
+\begin{aligned}
+{ f }^{ * }:\quad fraction\quad of\quad portfolio\quad to\quad wager
+\end{aligned}
+$$
+$$
+\begin{aligned}
+p:probability of\quad winning
+\end{aligned}
+$$
+$$
+\begin{aligned}
+b: net\quad odds
+\end{aligned}
+$$
 
 
 ## Findings
 
 - Portfolio Starting Value: $100,000
 - Back test: Jan 1, 2010 - Jan 1, 2014 (4 years)
-- Variety of stocks and S&P500
+- Variety of stocks and Index fund of S&P500
 
 ## Findings: Monte Carlo Simulation
 
