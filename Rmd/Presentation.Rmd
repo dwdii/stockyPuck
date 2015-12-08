@@ -2,7 +2,7 @@
 title: "stockyPuck Models for Zipline.io"
 author: "Daniel Dittenhafer & Justin Hink"
 date: "December 10, 2015"
-output: beamer_presentation
+output: ioslides_presentation
 subtitle: IS609 Mathematical Modeling - CUNY
 ---
 ```{r, message=FALSE, echo=FALSE}
@@ -204,21 +204,12 @@ $$
 { f }^{ * }\quad =\quad \frac { p(b+1)-1 }{ b }
 \end{aligned}
 $$
-$$
-\begin{aligned}
-{ f }^{ * }:\quad fraction\quad of\quad portfolio\quad to\quad wager
-\end{aligned}
-$$
-$$
-\begin{aligned}
-p:probability of\quad winning
-\end{aligned}
-$$
-$$
-\begin{aligned}
-b: net\quad odds
-\end{aligned}
-$$
+
+f*: fraction of portfolio to wager
+
+p: probability of winning "bet"
+
+b: net odds
 
 
 ## Findings
