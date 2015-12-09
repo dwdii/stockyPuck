@@ -2,8 +2,8 @@
 title: "stockyPuck Models for Zipline.io"
 author: "Daniel Dittenhafer & Justin Hink"
 date: "December 10, 2015"
-output: beamer_presentation
-subtitle: IS609 Mathematical Modeling - CUNY
+output: ioslides_presentation
+subtitle: "IS609 Mathematical Modeling - CUNY"
 ---
 ```{r, message=FALSE, echo=FALSE}
 library(XLConnect)
@@ -100,7 +100,7 @@ $$
 - maybe if we filter out some of the high frequency noise we will be left with something closer to the stock's true price
 
 ## Example FFT Filtered Signal
-![Smoothed Stock Ex](.\figures\smoothed_stock_ex.png)
+![Smoothed Stock Ex](.\figures\smoothed_stock_ex-sm.png)
 
 ## Details: FFT Code
 
@@ -119,7 +119,7 @@ $$
   s_filt = ifft(F_filt)
 ```
 
-## Details: High Pass Filter Code
+## Details: Low Pass Filter Code
 
 ```{python, eval=FALSE}
         if abs(freq)> (highCut+buff):
@@ -190,7 +190,7 @@ def monteCarloIteration(self, mean, std, start):
 - We now have a price gap
 - An Edge! (Maybe) 
 - What do we do with our edge?
-- How many stocks do we buy sell?
+- How many shares do we buy or sell?
 
 ## Kelly Criterion
 
