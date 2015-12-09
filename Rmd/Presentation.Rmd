@@ -2,7 +2,7 @@
 title: "stockyPuck Models for Zipline.io"
 author: "Daniel Dittenhafer & Justin Hink"
 date: "December 10, 2015"
-output: ioslides_presentation
+output: beamer_presentation
 subtitle: IS609 Mathematical Modeling - CUNY
 ---
 ```{r, message=FALSE, echo=FALSE}
@@ -44,7 +44,7 @@ myTheme <- theme(axis.ticks=element_blank(),
 
 ## Methodology: Structure {.smaller}
 
- 1. Model the stock's, true price
+ 1. Model the stock's true price
  2. Compare with the market price
  3. Make buy/sell/short decision based on the computed difference in step 2
      - in addition to current portfolio mix
@@ -81,7 +81,9 @@ $$
 \end{aligned}
 $$
 
+<center>
 ![Time Domain of a Sample Signal](.\figures\fdomainEx-sm.png)
+</center>
 
 ## Low Pass Filter
 
