@@ -2,7 +2,7 @@
 title: "stockyPuck Models for Zipline.io"
 subtitle: "IS609 Mathematical Modeling - CUNY"
 author: "Daniel Dittenhafer & Justin Hink"
-date: "December 9, 2015"
+date: "December 20, 2015"
 output: pdf_document
 ---
 ```{r, echo=FALSE, message=FALSE}
@@ -62,15 +62,11 @@ Our approach included developing and testing two main models which both fed into
 
 ## Findings
 
-In order to test the models we selected a set of 10 securities, mostly stocks and the S&P 500, and measured the performance of the models based on portfolio value after 4 years. Each model was executed once per security with a starting portfolio value of $100,000.00 on January 1, 2010 for a total of 20 model runs. The models had the opportunity to buy or sell shares of the security each day until January 1, 2014.  
+In order to test the models, we selected a set of 10 securities, mostly stocks and the S&P 500, and measured the performance of the models based on their ending portfolio value after 4 years. Each model was executed once per security with a starting portfolio value of $100,000.00 on January 1, 2010 for a total of 20 model runs. The models had the opportunity to buy or sell shares of the security each day until January 1, 2014.  
 
 - Portfolio Starting Value: $100,000
 - Back test: Jan 1, 2010 - Jan 1, 2014 (4 years)
 - Variety of stocks and Index fund of S&P500
-
-An example of the graphical output from a given execution of the Monte Carlo Simulation is shown below:
-
-![Monte Carlo Simulation Results Example](.\figures\MonteCarlo-ResultExample.png)
 
 ### Raw Results
 
@@ -97,7 +93,7 @@ kable(dfResults[, c("Symbol", "Company", "FFT_EndPortfolioValue", "MC_EndPortfol
       format.args=list(big.mark=","))
 ```
 
-The results are a bit easier to view visually and maybe we see the Fourier Transform performing better than the Monte Carlo Simulation.
+The results are a bit easier to view visually. From this view, it might seem the Fourier Transform is performing better than the Monte Carlo Simulation.
 
 ```{r, message=FALSE, echo=FALSE, fig.height=4, fig.width=7.5}
 g1 <- ggplot(dfResMeltedVal) + 
@@ -106,6 +102,8 @@ g1 <- ggplot(dfResMeltedVal) +
   myTheme
 g1
 ```
+
+Certainly the Fourier Transform's mean and median are higher than the Monte Carlo approach, though the standard deviation is higher as well.
 
 ```{r, message=FALSE, echo=FALSE}
 dfStats <- ddply(dfResMeltedVal, .(Algorithm), summarize,
@@ -136,9 +134,9 @@ dfStatsRoi <- ddply(dfResMeltedRoi, .(Algorithm), summarize,
 kable(dfStatsRoi, format.args=list(big.mark=","))
 ```
 
-### Hypothesis Tests
+### Hypothesis Test: Fourier Transform
 
-How can we conclusively test to see if the Fourier Transform is actually performing better? A statistical hypothesis test could work. First let's run a test to see if the model's ending portolio value is higher than the starting value. We'll run this test with a 0.05 alpha level, meaning a 95% confidence level. 
+How can we conclusively test to see if our models are actually performing better than doing nothing? A statistical hypothesis test could work. First let's run a test to see if the model's ending portolio value is higher than the starting value. We'll run this upper tail test with a 0.05 alpha level, meaning a 95% confidence level. 
 
 \[H_0: \mu_{model} = 100,000\]
 
@@ -146,28 +144,76 @@ How can we conclusively test to see if the Fourier Transform is actually perform
 
 \[\alpha = 0.05\]
 
-We'll start by applying our hypothesis test to the Fourier Transform. We need to check the distribution of the data to ensure it is a nearly normal. The closer to the data is to the diagonal line, evenly spread, the better.
+We'll start by applying our hypothesis test to the Fourier Transform. We need to check the distribution of the data to ensure it is a nearly normal. The closer the data is to the diagonal line, evenly spread, the better.
 
 ```{r, echo=FALSE, fig.height=4, fig.width=7.5}
 qqnorm(dfResults$FFT_EndPortfolioValue)
 qqline(dfResults$FFT_EndPortfolioValue) 
 ```
 
-There are deviations from the normal distribution, but for our purposes we accept this a nearly normal and can move forward with the hypothesis test. The following `R` code computes the relevant statistics which are presented below.
+As shown in the Q-Q plot, above, there are deviations from the normal distribution, but for our purposes we accept this a nearly normal and can move forward with the hypothesis test. The following `R` code computes the relevant statistics which are presented below.
 
 ```{r, echo=TRUE}
+# Grab the raw statistics out of the data frame
 fftStats <- dfStats[dfStats$Algorithm == "FFT_EndPortfolioValue",]
 mean <- fftStats$mean
 sd <- fftStats$sd
 n <- fftStats$n
 df <- n - 1
+
 # Compute t-test values and CI margin of error
 se <- sd / sqrt(n)
 tVal95 <- qt(0.975, df=df)
 me <- tVal95 * se
+
 # t score and p value
 tScore <- (mean - 100000) / se
 pVal <- pt(tScore, df, lower.tail=FALSE)
+```
+
+The standard error of the sample mean is computed as follows:
+
+\[SE_{fft} = \frac{`r format(sd, scientific=FALSE, big.mark=",")`}{\sqrt{`r n`}} = `r format(se, scientific=FALSE, big.mark=",")`\]
+
+An our t-score for this hypothesis test is computed as:
+
+\[T_{fft} = \frac{`r format(mean, scientific=FALSE, big.mark=",")` - 100,000}{`r format(se, scientific=FALSE, big.mark=",")`} = `r format(tScore, scientific=FALSE)` \]
+
+\[\text{p-value }= `r format(pVal, scientific=FALSE)`  > 0.05\]
+
+95% Confidence Interval: \(`r format(mean, scientific=FALSE, big.mark=",")` \pm `r format(me, scientific=FALSE, big.mark=",")` = \)
+\(`r format(mean - me, scientific=FALSE, big.mark=",")`\) to \(`r format(mean + me, scientific=FALSE, big.mark=",")` \)
+
+Based on the p-value \(\approx `r round(pVal, 4)`\) and the 95%CI crossing the portfolio starting value, we accept the null hypothesis and conclude that the Fourier Transform model as written is not performing significantly better.
+
+### Hypothesis Test: Monte Carlo
+
+Next up, we will perform the same hypothesis test on the Monte Carlo Simulation. Again, we check the normality of the data and find a nearly normal distribution, as shown in the following Q-Q plot.
+
+```{r, echo=FALSE}
+qqnorm(dfResults$MC_EndPortfolioValue)
+qqline(dfResults$MC_EndPortfolioValue) 
+```
+
+Once again, we use `R` to help us with the mathematics of the hypothesis test. 
+
+```{r, echo=TRUE}
+mcStats <- dfStats[dfStats$Algorithm == "MC_EndPortfolioValue",]
+mean <- mcStats$mean
+sd <- mcStats$sd
+n <- mcStats$n
+df <- n - 1
+
+# Compute t-test values and CI margin of error
+se <- sd / sqrt(n)
+tVal95 <- qt(0.975, df=df)
+me <- tVal95 * se
+
+# t score and p value
+tScore <- (mean - 100000) / se
+#tScore
+pVal <- pt(tScore, df, lower.tail=FALSE)
+#pVal
 ```
 
 \[SE_{fft} = \frac{`r format(sd, scientific=FALSE, big.mark=",")`}{\sqrt{`r n`}} = `r format(se, scientific=FALSE, big.mark=",")`\]
@@ -179,7 +225,38 @@ pVal <- pt(tScore, df, lower.tail=FALSE)
 95% Confidence Interval: \(`r format(mean, scientific=FALSE, big.mark=",")` \pm `r format(me, scientific=FALSE, big.mark=",")` = \)
 \(`r format(mean - me, scientific=FALSE, big.mark=",")`\) to \(`r format(mean + me, scientific=FALSE, big.mark=",")` \)
 
-Based on the p-value \(\approx `r round(pVal, 4)`\) and the 95%CI crossing the portfolio starting value, we accept the null hypothesis and conclude that the Fourier Transform model as written is not performing significantly better.
+Based on the p-value \(\approx `r round(pVal, 4)`\) and the 95%CI crossing the portfolio starting value, we accept the null hypothesis and conclude that the Monte Carlo model as written is not performing significantly better.
+
+### Difference of Means Test
+
+Now, let's look at how the Fourier Transform compares to the Monte Carlo approach. Are they similar, or is the Fourier Transform performing better at a statistically significant level? We setup our hypothesis test as a difference of means as shown with the following null and alternate hypotheses.
+
+\[H_0: \mu_{fft} = \mu_{mc}\]
+
+\[H_a: \mu_{fft} > \mu_{mc}\]
+
+\[\alpha = 0.05\]
+
+We perform the calculations in `R` code as shown below, followed by the mathematical notation.
+
+```{r, echo=TRUE}
+# Compute standard error and difference of means
+se_diff <- sqrt((fftStats$sd^2 / fftStats$n) + (mcStats$sd^2 / mcStats$n))
+mean_diff <- fftStats$mean - mcStats$mean
+
+# Compute t-score and lookup p-value
+tScore_diff <- (mean_diff - 0) / se_diff
+pVal <- pt(tScore_diff, df, lower.tail=FALSE)
+```
+
+\[SE_{\bar{x}_{fft} - \bar{x}_{mc}} = \sqrt{\frac{`r format(fftStats$sd, scientific=FALSE, big.mark=",")`^2}{`r fftStats$n`} + \frac{`r format(mcStats$sd, scientific=FALSE, big.mark=",")`^2}{`r mcStats$n`} } = `r format(se_diff, scientific=FALSE, big.mark=",")`\]
+
+\[T_{diff} = \frac{`r format(mean_diff, scientific=FALSE, big.mark=",")` - 0}{`r format(se_diff, scientific=FALSE, big.mark=",")`} = `r format(tScore_diff, scientific=FALSE)` \]
+
+\[\text{p-value }= `r format(pVal, scientific=FALSE)`  > 0.05\]
+
+Based on the p-value \(\approx `r round(pVal, 4)`\) we do not reject the null hypothesis and therefore conclude that the Fast Fourier Transform is not significantly better than the Monte Carlo Simulation.
+
 
 ## Conclusions
 
