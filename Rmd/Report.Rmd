@@ -1,0 +1,191 @@
+---
+title: "stockyPuck Models for Zipline.io"
+subtitle: "IS609 Mathematical Modeling - CUNY"
+author: "Daniel Dittenhafer & Justin Hink"
+date: "December 9, 2015"
+output: pdf_document
+---
+```{r, echo=FALSE, message=FALSE}
+library(plyr)
+library(knitr)
+library(knitcitations)
+library(RefManageR)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(XLConnect)
+library(reshape2)
+
+cleanbib()
+cite_options(style="markdown")
+
+bibZiplineIO <- bibentry(bibtype="Misc", 
+                              author=person(family="Quantopian, Inc"),
+                              title="Zipline, a Pythonic Algorithmic Trading Library",
+                              year=2015,
+                              url="https://github.com/quantopian/zipline"
+                              )
+
+
+# My ggplot theme
+myTheme <- theme(axis.ticks=element_blank(),
+                 axis.title=element_text(size="10"),
+                  panel.border = element_rect(color="gray", fill=NA), 
+                  panel.background=element_rect(fill="#FBFBFB"), 
+                  panel.grid.major.y=element_line(color="white", size=0.5), 
+                  panel.grid.major.x=element_line(color="white", size=0.5),
+                  plot.title=element_text(size="10"))
+```
+
+## Introduction
+
+
+
+## Analysis of the Problem
+
+Buying and selling stocks is a lot like betting on a horse race. There is a lot of uncertainty. Past performance may or may not be an indicator of future success. But knowing as much as you can about the variables involved and balancing those variables appropriately can reap rewards. Everyday people trade shares based on an expectation of a share price increasing or decreasing. Sometimes automated software systems perform trades based on as much available information as an analyst could program into the algorithm. 
+
+How do these analysts model the stock price in a way that they can successfully buy or sell for a profit? There are surely many ways and many variables that can and maybe should be considered, but with this project we wanted to being understanding what is required to model a stock price using different modelling approaches.
+
+## Methodology
+
+With this in mind, we decided to use the Zipline.io framework from the team at Quantopian, Inc to test some mathematical model ideas against real-world historical stock activity `r citep(bibZiplineIO)`. The Zipline framework makes it very straight forward to focus on the algorithm, while the framework brings in the historical pricing for specified securities, and helps track portfolio position over time. There are many features of Zipline we did not use such as commissions and slippage. Rather we focused on the raw behaviour of our algorithms.
+
+Our approach included developing and testing two main models which both fed into a "position sizer" which helped us choose how much to buy or sell as a result of the predictions from the main algorithms. 
+
+* Fast Fourier Transform (FFT)
+
+* Monte Carlo Simulation (MC)
+
+![Primary Algorithms](./figures/2-Models-sm.png)
+
+
+## Findings
+
+In order to test the models we selected a set of 10 securities, mostly stocks and the S&P 500, and measured the performance of the models based on portfolio value after 4 years. Each model was executed once per security with a starting portfolio value of $100,000.00 on January 1, 2010 for a total of 20 model runs. The models had the opportunity to buy or sell shares of the security each day until January 1, 2014.  
+
+- Portfolio Starting Value: $100,000
+- Back test: Jan 1, 2010 - Jan 1, 2014 (4 years)
+- Variety of stocks and Index fund of S&P500
+
+An example of the graphical output from a given execution of the Monte Carlo Simulation is shown below:
+
+![Monte Carlo Simulation Results Example](.\figures\MonteCarlo-ResultExample.png)
+
+### Raw Results
+
+The results of each run are listed in the following table:
+
+```{r, message=FALSE, echo=FALSE}
+# Load the results data
+wb = loadWorkbook("../Test Results/results.xlsx")
+dfResults = readWorksheet(wb, sheet = "Sheet1", header = TRUE)
+# Melt to convert to a format friendly to ggplot for Algo bar chart
+dfResMeltedVal <- melt(dfResults, id.vars=c("Symbol", "Company"), 
+                    variable.name="Algorithm",
+                    measure.vars=c("FFT_EndPortfolioValue", "MC_EndPortfolioValue"))
+# Melt to convert to a format friendly to ggplot for another Algo bar chart
+dfResMeltedRoi <- melt(dfResults, id.vars=c("Symbol", "Company"), 
+                    variable.name="Algorithm",
+                    measure.vars=c("FFT_Annual.ROI", "MC_Annual.ROI"))
+
+#summary(dfResults)
+```
+
+```{r, echo=FALSE}
+kable(dfResults[, c("Symbol", "Company", "FFT_EndPortfolioValue", "MC_EndPortfolioValue")], 
+      format.args=list(big.mark=","))
+```
+
+The results are a bit easier to view visually and maybe we see the Fourier Transform performing better than the Monte Carlo Simulation.
+
+```{r, message=FALSE, echo=FALSE, fig.height=4, fig.width=7.5}
+g1 <- ggplot(dfResMeltedVal) + 
+  geom_bar(aes(x=Symbol, y=value, fill=Algorithm), stat="identity", position="dodge") +
+  labs(title="Algorithm Ending Value by Symbol") +
+  myTheme
+g1
+```
+
+```{r, message=FALSE, echo=FALSE}
+dfStats <- ddply(dfResMeltedVal, .(Algorithm), summarize,
+            median=median(value),
+            mean=mean(value), 
+            sd=sd(value),
+            n=length(value))
+
+kable(dfStats, format.args=list(big.mark=","))
+```
+
+What do the results look like when viewed from an annualized return perspective? Again, it seems the Fourier Transform is performing better than the Monte Carlo Simulation.
+
+```{r, message=FALSE, echo=FALSE, eval=TRUE, fig.height=4, fig.width=7.5}
+g1 <- ggplot(dfResMeltedRoi) + 
+  geom_bar(aes(x=Symbol, y=value, fill=Algorithm), stat="identity", position="dodge") +
+  labs(title="Algorithm Return on Investment by Symbol") +
+  myTheme
+g1
+```
+
+
+```{r, message=FALSE, echo=FALSE, eval=TRUE}
+dfStatsRoi <- ddply(dfResMeltedRoi, .(Algorithm), summarize,
+            median=median(value),
+            mean=mean(value), 
+            sd=sd(value))
+kable(dfStatsRoi, format.args=list(big.mark=","))
+```
+
+### Hypothesis Tests
+
+How can we conclusively test to see if the Fourier Transform is actually performing better? A statistical hypothesis test could work. First let's run a test to see if the model's ending portolio value is higher than the starting value. We'll run this test with a 0.05 alpha level, meaning a 95% confidence level. 
+
+\[H_0: \mu_{model} = 100,000\]
+
+\[H_a: \mu_{model} > 100,000\]
+
+\[\alpha = 0.05\]
+
+We'll start by applying our hypothesis test to the Fourier Transform. We need to check the distribution of the data to ensure it is a nearly normal. The closer to the data is to the diagonal line, evenly spread, the better.
+
+```{r, echo=FALSE, fig.height=4, fig.width=7.5}
+qqnorm(dfResults$FFT_EndPortfolioValue)
+qqline(dfResults$FFT_EndPortfolioValue) 
+```
+
+There are deviations from the normal distribution, but for our purposes we accept this a nearly normal and can move forward with the hypothesis test. The following `R` code computes the relevant statistics which are presented below.
+
+```{r, echo=TRUE}
+fftStats <- dfStats[dfStats$Algorithm == "FFT_EndPortfolioValue",]
+mean <- fftStats$mean
+sd <- fftStats$sd
+n <- fftStats$n
+df <- n - 1
+# Compute t-test values and CI margin of error
+se <- sd / sqrt(n)
+tVal95 <- qt(0.975, df=df)
+me <- tVal95 * se
+# t score and p value
+tScore <- (mean - 100000) / se
+pVal <- pt(tScore, df, lower.tail=FALSE)
+```
+
+\[SE_{fft} = \frac{`r format(sd, scientific=FALSE, big.mark=",")`}{\sqrt{`r n`}} = `r format(se, scientific=FALSE, big.mark=",")`\]
+
+\[T_{fft} = \frac{`r format(mean, scientific=FALSE, big.mark=",")` - 100,000}{`r format(se, scientific=FALSE, big.mark=",")`} = `r format(tScore, scientific=FALSE)` \]
+
+\[\text{p-value }= `r format(pVal, scientific=FALSE)`  > 0.05\]
+
+95% Confidence Interval: \(`r format(mean, scientific=FALSE, big.mark=",")` \pm `r format(me, scientific=FALSE, big.mark=",")` = \)
+\(`r format(mean - me, scientific=FALSE, big.mark=",")`\) to \(`r format(mean + me, scientific=FALSE, big.mark=",")` \)
+
+Based on the p-value \(\approx `r round(pVal, 4)`\) and the 95%CI crossing the portfolio starting value, we accept the null hypothesis and conclude that the Fourier Transform model as written is not performing significantly better.
+
+## Conclusions
+
+## Referernces
+
+```{r, results='asis', echo=FALSE}
+BibOptions(style="html", bib.style="authortitle")
+bibliography()
+```
