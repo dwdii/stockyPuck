@@ -260,6 +260,8 @@ Based on the p-value \(\approx `r round(pVal, 4)`\) we do not reject the null hy
 
 ## Conclusions
 
+After developing and testing 2 main models combined with a position sizing Kelly Criterion, we found our model were not much better than keeping our money under our pillows. And surprisingly, neither model was significantly better than the other. With that said, we believe the models are a good place to start for futher tuning and improvement. The approach we took was generic for any stock or mutual fund, but developing more specific approaches based on industry or security type might yield improved results.
+
 ## Referernces
 
 ```{r, results='asis', echo=FALSE}
