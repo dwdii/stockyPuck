@@ -49,9 +49,9 @@ How do these analysts model the stock price in a way that they can successfully 
 
 ## Methodology
 
-With this in mind, we decided to use the [Zipline.io framework](https://github.com/quantopian/zipline) from the team at [Quantopian, Inc](https://www.quantopian.com/) to test some mathematical modelling ideas against real-world historical stock activity `r citep(bibZiplineIO)`. The Zipline framework makes it very straight forward to focus on the algorithm, while the framework brings in the historical pricing for specified securities, and helps track portfolio value and position over time. There are many features of Zipline we did not use such as commissions and slippage. Rather we focused on the raw behaviour of our algorithms.
+With this in mind, we decided to use the [Zipline.io framework](https://github.com/quantopian/zipline) from the team at [Quantopian, Inc](https://www.quantopian.com/) to test some mathematical modeling ideas against real-world historical stock activity `r citep(bibZiplineIO)`. The Zipline framework makes it very straight forward to focus on the algorithm, while the framework brings in the historical pricing for specified securities, and helps track portfolio value and position over time. There are many features of Zipline we did not use such as commissions and slippage. Rather we focused on the raw behaviour of our algorithms.
 
-Our approach included developing and testing two main models which both fed into a "position sizer" which helped us choose how much to buy or sell as a result of the predictions from the main algorithms. 
+Our approach included developing (using the Python language) and testing two main models which both fed into a "position sizer" which helped us choose how much to buy or sell as a result of the predictions from the main algorithms. 
 
 * Fast Fourier Transform (FFT)
 
@@ -83,7 +83,7 @@ mcResultsPd = pd.Series(mcResults)
 predictedPrice = mcResultsPd.mean()
 ```
 
-The `monteCarloIteration` function is structured with the capability to predict prices \(n\) days in the future and could also be used for a crude value-at-risk computation. For our purposes, we only sample and walk 1 day into the future (`mcFutureDays` \(= 1\)), thereby returning tomorrow's precicted price for the given Monte Carlo iteration.
+The `monteCarloIteration` function is structured with the capability to predict prices \(n\) days in the future and could also be used for a crude value-at-risk computation. For our purposes, we only sample and walk 1 day into the future (`mcFutureDays` \(= 1\)), thereby returning tomorrow's predicted price for the given Monte Carlo iteration.
 
 ```{python, eval=FALSE}
 def monteCarloIteration(self, mean, std, start):
@@ -222,7 +222,7 @@ The standard error of the sample mean is computed as follows:
 
 \[SE_{fft} = \frac{`r format(sd, scientific=FALSE, big.mark=",")`}{\sqrt{`r n`}} = `r format(se, scientific=FALSE, big.mark=",")`\]
 
-An our t-score for this hypothesis test is computed as:
+And our t-score for this hypothesis test is computed as:
 
 \[T_{fft} = \frac{`r format(mean, scientific=FALSE, big.mark=",")` - 100,000}{`r format(se, scientific=FALSE, big.mark=",")`} = `r format(tScore, scientific=FALSE)` \]
 
@@ -231,7 +231,7 @@ An our t-score for this hypothesis test is computed as:
 95% Confidence Interval: \(`r format(mean, scientific=FALSE, big.mark=",")` \pm `r format(me, scientific=FALSE, big.mark=",")` = \)
 \(`r format(mean - me, scientific=FALSE, big.mark=",")`\) to \(`r format(mean + me, scientific=FALSE, big.mark=",")` \)
 
-Based on the p-value \(\approx `r round(pVal, 4)`\) and the 95%CI crossing the portfolio starting value, we accept the null hypothesis and conclude that the Fourier Transform model as written is not performing significantly better.
+Based on the p-value \(\approx `r round(pVal, 4)`\) and the 95%CI crossing the portfolio starting value of 100,000, we accept the null hypothesis and conclude that the Fourier Transform model, as written, is not performing significantly better.
 
 ### Hypothesis Test: Monte Carlo
 
@@ -309,7 +309,7 @@ Based on the p-value \(\approx `r round(pVal, 4)`\) we do not reject the null hy
 
 After developing and testing 2 main models combined with a position sizing Kelly Criterion, we found our models were not much better than keeping our money under our pillows. And surprisingly, neither model was significantly better than the other. Possibly with a broader test set (i.e. more stocks) we could better discern a difference between the methods. With that said, we believe the models are a good place to start for further tuning and improvement. 
 
-Mathematical models are notoriously bad a predicting outside their original data set range, and predicting the future (an unknown) is implicitly outside the data set range. The approach we took was generic for any stock or mutual fund, but developing more specific approaches, based on industry or security type, might yield improved results. 
+Mathematical models are notoriously poor at predicting outside their original data set range, and predicting the future (an unknown) is implicitly outside the data set range. The approach we took was generic for any stock or mutual fund, but developing more specific approaches, based on industry or security type, might yield improved results. 
 
 ## Referernces
 
