@@ -9,7 +9,9 @@ Several trading algorithms were implemented in Python using Zipline.io framework
 
 * **Fourier Transform**: Using the [SciPy FFT](http://docs.scipy.org/doc/scipy-0.16.1/reference/generated/scipy.fftpack.fft.html) function and related helper functions to smooth and predict a security's price tomororw.
 
-* **Monte Carlo Simulation**: Using NumPy statistics functions and the normal distribution to predict tomorrows price.
+* **Monte Carlo Simulation**: Using NumPy statistics functions and the normal distribution to predict tomorrow's price.
+
+![Models Diagram](https://raw.githubusercontent.com/dwdii/stockyPuck/master/Rmd/figures/2-Models-sm.png)
 
 An overview of the project and results can be found in the
 [presentation slides](https://htmlpreview.github.io/?https://github.com/dwdii/stockyPuck/blob/master/Rmd/Presentation.html#1).

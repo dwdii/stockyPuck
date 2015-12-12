@@ -39,17 +39,17 @@ myTheme <- theme(axis.ticks=element_blank(),
 
 ## Introduction
 
-
+**TBD - Justin**
 
 ## Analysis of the Problem
 
 Buying and selling stocks is a lot like betting on a horse race. There is a lot of uncertainty. Past performance may or may not be an indicator of future success. But knowing as much as you can about the variables involved and balancing those variables appropriately can reap rewards. Everyday people trade shares based on an expectation of a share price increasing or decreasing. Sometimes automated software systems perform trades based on as much available information as an analyst could program into the algorithm. 
 
-How do these analysts model the stock price in a way that they can successfully buy or sell for a profit? There are surely many ways and many variables that can and maybe should be considered, but with this project we wanted to being understanding what is required to model a stock price using different modelling approaches.
+How do these analysts model the stock price in a way that they can successfully buy or sell for a profit? There are surely many ways and many variables that can and maybe should be considered, but with this project we wanted to begin understanding what is required to model a stock price using different modeling approaches.
 
 ## Methodology
 
-With this in mind, we decided to use the Zipline.io framework from the team at Quantopian, Inc to test some mathematical model ideas against real-world historical stock activity `r citep(bibZiplineIO)`. The Zipline framework makes it very straight forward to focus on the algorithm, while the framework brings in the historical pricing for specified securities, and helps track portfolio position over time. There are many features of Zipline we did not use such as commissions and slippage. Rather we focused on the raw behaviour of our algorithms.
+With this in mind, we decided to use the [Zipline.io framework](https://github.com/quantopian/zipline) from the team at [Quantopian, Inc](https://www.quantopian.com/) to test some mathematical modelling ideas against real-world historical stock activity `r citep(bibZiplineIO)`. The Zipline framework makes it very straight forward to focus on the algorithm, while the framework brings in the historical pricing for specified securities, and helps track portfolio value and position over time. There are many features of Zipline we did not use such as commissions and slippage. Rather we focused on the raw behaviour of our algorithms.
 
 Our approach included developing and testing two main models which both fed into a "position sizer" which helped us choose how much to buy or sell as a result of the predictions from the main algorithms. 
 
@@ -59,6 +59,53 @@ Our approach included developing and testing two main models which both fed into
 
 ![Primary Algorithms](./figures/2-Models-sm.png)
 
+### Fast Fourier Transform
+
+**TBD - Justin**
+
+### Monte Carlo Simulation
+
+The Monte Carlo simulation used the daily price differences from the prior 10 days as a basis for a normal distribution. The mean and standard deviation where computed from the price difference vector and passed to the `monteCarloIteration` function for sampling over the distribution. The sampling was performed 100 times, as defined by the `mcIterations` variable. After gathering the possible price changes, we used the mean of these as tomorrow's predicted price, as shown on the last line of the code segment below. 
+
+```{python, eval=FALSE}
+priceDiffs = histData[sym].diff()
+meanDiff = priceDiffs.mean()
+sdDiff = priceDiffs.std()
+
+mcResults = list()
+for i in range(0, self.mcIterations, 1):
+    res = self.monteCarloIteration(meanDiff, sdDiff, curPrice)
+    mcResults.append(res)
+# Convert to a pandas series so we can use the statistics functions.
+mcResultsPd = pd.Series(mcResults)
+
+# What is the price we predict for tomorrow?
+predictedPrice = mcResultsPd.mean()
+```
+
+The `monteCarloIteration` function is structured with the capability to predict prices \(n\) days in the future and could also be used for a crude value-at-risk computation. For our purposes, we only sample and walk 1 day into the future (`mcFutureDays` \(= 1\)), thereby returning tomorrow's precicted price for the given Monte Carlo iteration.
+
+```{python, eval=FALSE}
+def monteCarloIteration(self, mean, std, start):
+    import random
+    sample = list()
+    for i in range(0, self.mcFutureDays, 1):
+        sample.append(random.gauss(mean, std))
+
+    curPrice = start
+    walk = list()
+    for d in sample:
+        newPrice = curPrice + d
+        curPrice = newPrice
+        walk.append(curPrice)
+
+    return walk[-1]
+```
+
+
+### Kelly Criterion
+
+**TBD - Justin**
 
 ## Findings
 
@@ -260,7 +307,9 @@ Based on the p-value \(\approx `r round(pVal, 4)`\) we do not reject the null hy
 
 ## Conclusions
 
-After developing and testing 2 main models combined with a position sizing Kelly Criterion, we found our model were not much better than keeping our money under our pillows. And surprisingly, neither model was significantly better than the other. With that said, we believe the models are a good place to start for futher tuning and improvement. The approach we took was generic for any stock or mutual fund, but developing more specific approaches based on industry or security type might yield improved results.
+After developing and testing 2 main models combined with a position sizing Kelly Criterion, we found our models were not much better than keeping our money under our pillows. And surprisingly, neither model was significantly better than the other. Possibly with a broader test set (i.e. more stocks) we could better discern a difference between the methods. With that said, we believe the models are a good place to start for further tuning and improvement. 
+
+Mathematical models are notoriously bad a predicting outside their original data set range, and predicting the future (an unknown) is implicitly outside the data set range. The approach we took was generic for any stock or mutual fund, but developing more specific approaches, based on industry or security type, might yield improved results. 
 
 ## Referernces
 
