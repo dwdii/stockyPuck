@@ -1,5 +1,6 @@
 ---
 title: "stockyPuck Models for Zipline.io"
+subtitle: "IS609 Mathematical Modeling - CUNY"
 author: "Daniel Dittenhafer & Justin Hink"
 date: "December 20, 2015"
 output: pdf_document
@@ -15,8 +16,6 @@ library(grid)
 library(gridExtra)
 library(XLConnect)
 library(reshape2)
-library(png)
-library(grid)
 
 cleanbib()
 cite_options(style="markdown")
@@ -35,6 +34,14 @@ bibGithub <- bibentry(bibtype="Misc",
                       year=2015,
                       url="https://github.com/dwdii/stockyPuck")
 
+bibSciPy <- bibentry(bibtype="Misc",
+                     author=personList(person(given="Eric", family="Jones"), 
+                                       person(given="Travis", family="Oliphant"),
+                                       person(given="Pearu", family="Peterson")),
+                     title="SciPy: Open source scientific tools for Python",
+                     year=2015,
+                     url="http://www.scipy.org/"
+                     )
 
 # My ggplot theme
 myTheme <- theme(axis.ticks=element_blank(),
@@ -95,11 +102,9 @@ $$
 \end{aligned}
 $$
 
-```{r fftimg1,echo=FALSE,message=FALSE}
-img <- readPNG('./figures/fdomainEx-sm.png')
- grid.raster(img)
-```
-
+\begin{center}
+\includegraphics{./figures/fdomainEx-sm.png}
+\end{center}
 
 At first this may all seem fairly irrelevant to financial markets but there is one key similarity.  Both an electric signal and a stock chart are, at a fundamental level, a time series of data points.  Given that then, perhaps some of the common techniques to clean electrical signals can be applied to financial data.
 
@@ -109,10 +114,9 @@ Trading thesis:  a financial time series is just a noisy signal.  If we remove t
 
 The following is a stock chart for General Electric.  The green line represents the market price throughout time.  The blue, smooth line is the filtered signal using the above mentioned low pass filtering technique.
 
-```{r fftimg2,echo=FALSE,message=FALSE}
-img2 <- readPNG('./figures/smoothed_stock_ex-sm.png')
- grid.raster(img2)
-```
+<center>
+![Smoothed Stock Example](./figures/smoothed_stock_ex-sm.png)
+</center>
 
 In summary, this algorithm follows the below high level steps.
 
@@ -137,7 +141,7 @@ The following code shows the logical flow of these steps.
   s_filt = ifft(F_filt)
 ```
 
-Note that the fft() and ifft() functions are included in the scipy library which we have utilized for this project.  The library's implmentation is both blazing fast and well tested throughout industry and academia.
+Note that the `fft` and `ifft` functions are included in the SciPy library which we have utilized for this project `r citep(bibSciPy)`.  The library's implementation is both blazing fast and well tested throughout industry and academia.
 
 The details of the low pass filter can be seen in the following code snippet:
 
@@ -409,6 +413,10 @@ After developing and testing 2 main models combined with a position sizing Kelly
 Mathematical models are notoriously poor at predicting outside their original data set range, and predicting the future (an unknown) is implicitly outside the data set range. The approach we took was generic for any stock or mutual fund, but developing more specific approaches, based on industry or security type, might yield improved results.
 
 The original code, test results, paper and presentation are available in the [stockyPuck repository on Github](https://github.com/dwdii/stockyPuck) `r citep(bibGithub)`.
+
+### Note on the name stockyPuck
+
+The name `stockyPuck` has no real meaning and simply represents a quick moniker we could use for our GitHub repository. Our project is related to stock trading and this play on words with a hockey puck, a fast moving object, came to mind. 
 
 ## Referernces
 
