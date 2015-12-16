@@ -1,11 +1,11 @@
 ---
 title: "stockyPuck Models for Zipline.io"
-subtitle: "IS609 Mathematical Modeling - CUNY"
 author: "Daniel Dittenhafer & Justin Hink"
 date: "December 20, 2015"
 output: pdf_document
 ---
-```{r, echo=FALSE, message=FALSE}
+
+```{r load-data, echo=FALSE, eval=TRUE, results='hide',message=FALSE}
 library(plyr)
 library(knitr)
 library(knitcitations)
@@ -15,6 +15,8 @@ library(grid)
 library(gridExtra)
 library(XLConnect)
 library(reshape2)
+library(png)
+library(grid)
 
 cleanbib()
 cite_options(style="markdown")
@@ -46,7 +48,9 @@ myTheme <- theme(axis.ticks=element_blank(),
 
 ## Introduction
 
-**TBD - Justin**
+The stock market;  For as long as it has existed, it has fascinated its' participants and observers alike.  The lure of a seemingly labourless path to wealth through our markets is perhaps equaled only by the magnitude of the complexity that underly them.  A financial market is a fickle thing, famously tricky to analyze and difficult to derive any true [alpha](https://en.wikipedia.org/wiki/Alpha_(finance)) from.
+
+For this project we've decided to take on this challenge and have developed 3 distinct mathematically driven algorithms that attempt to find an edge in day trading the US equity market.   
 
 ## Analysis of the Problem
 
@@ -70,7 +74,91 @@ Our approach included developing (using the Python language) and testing two mai
 
 ### Fast Fourier Transform
 
-**TBD - Justin**
+A staple of undergraduate electrical and computer engineering programs is the Fourier Transform.  In those domains, it is primarily used in the analysis of electronic signals.  Conceptually, it is a technique used to transform time series data into an equivalent signal in the frequency domain.  Mathematically, it looks like this for a given time series g(t):
+
+$$
+\begin{aligned}
+F \{ g(t)\} =G(f)=\int _{ -\infty  }^{ \infty  }{ { g(t) }e^{ -2\pi ift }dt }  
+\end{aligned}
+$$
+
+In the following example, we take a sinusoid consisting of 2 clear frequency components and show what the transformed frequency spectrum plot looks like.
+
+$$
+\begin{aligned}
+g(t)=sin(2\pi { f }_{ 1 }t)+\frac { 1 }{ 2 } sin(2\pi { f }_{ 2 }t) 
+\end{aligned}
+$$
+$$
+\begin{aligned}
+{ f }_{ 1 }=50Hz\\ { f }_{ 2 }=80Hz 
+\end{aligned}
+$$
+
+```{r fftimg1,echo=FALSE,message=FALSE}
+img <- readPNG('./figures/fdomainEx-sm.png')
+ grid.raster(img)
+```
+
+
+At first this may all seem fairly irrelevant to financial markets but there is one key similarity.  Both an electric signal and a stock chart are, at a fundamental level, a time series of data points.  Given that then, perhaps some of the common techniques to clean electrical signals can be applied to financial data.
+
+One such technique is low pass frequency filtering.  A low pass frequency filter removes the high frequency components of a signal.  In the context of the above example, if we filtered out all frequencies higher than 60 Hz, we'd be left with a frequency spectrum plot that has only one remaining spike (at 50Hz).  
+
+Trading thesis:  a financial time series is just a noisy signal.  If we remove the high frequency components of the signal (the noise), we will be left with a purer signal.  This filtered signal would represent the "true" price of a given equity throughout time.  With knowledge of what the true price is, we can contrast that with the current market price and make trading decisions off of that gap.
+
+The following is a stock chart for General Electric.  The green line represents the market price throughout time.  The blue, smooth line is the filtered signal using the above mentioned low pass filtering technique.
+
+```{r fftimg2,echo=FALSE,message=FALSE}
+img2 <- readPNG('./figures/smoothed_stock_ex-sm.png')
+ grid.raster(img2)
+```
+
+In summary, this algorithm follows the below high level steps.
+
+- Transform the time series into it's frequency domain representation using the Fourier Transform.
+- Filter out the high frequency components of the signal
+- Transform the filtered signal back to a time series representation using the inverse Fourier Transform.
+
+The following code shows the logical flow of these steps.
+
+```{python, eval=FALSE}
+  #get spectrum of signal with Fourier Transform using built in scipy method
+  F = fft(s)
+  
+  #filter high frequency components of signals
+  dt = 1/252.0
+  f = fftfreq(len(F),dt)  # get sample frequency in samples per year
+  
+  F_filt = self.getfilteredsignal(F,f)
+  F_filt = np.array(F_filt)
+  
+  # take inverse FFT to get smoothed time series signal
+  s_filt = ifft(F_filt)
+```
+
+Note that the fft() and ifft() functions are included in the scipy library which we have utilized for this project.  The library's implmentation is both blazing fast and well tested throughout industry and academia.
+
+The details of the low pass filter can be seen in the following code snippet:
+
+```{python, eval=FALSE}
+        if abs(freq)> (highCut+buff):
+            return 0
+        else:
+            return x
+```
+The implementation of the filter is trivial in the frequency domain. It consists of a single if-else block.  This conceptual simplicity is perhaps the main motivator in using the Fourier Transform to flip our signal to the frequency domain before filtering.  Pure time series techniques for frequency filtering do exist but they are more complicated.  Additionally, frequency domain low pass filtering is computationally more efficient compared to the time domain equivalents.
+
+$$
+\begin{aligned}
+O({ n }^{ 2 })\quad for\quad Time\quad Domain 
+\end{aligned}
+$$
+$$
+\begin{aligned}
+O(nlogn)\quad for\quad Freq\quad Domain 
+\end{aligned}
+$$
 
 ### Monte Carlo Simulation
 
