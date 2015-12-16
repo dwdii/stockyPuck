@@ -26,6 +26,13 @@ bibZiplineIO <- bibentry(bibtype="Misc",
                               url="https://github.com/quantopian/zipline"
                               )
 
+bibGithub <- bibentry(bibtype="Misc",
+                      author=personList(person(given="Daniel", family="Dittenhafer"), 
+                                        person(given="Justin", family="Hink")),
+                      title="stockyPuck",
+                      year=2015,
+                      url="https://github.com/dwdii/stockyPuck")
+
 
 # My ggplot theme
 myTheme <- theme(axis.ticks=element_blank(),
@@ -58,6 +65,8 @@ Our approach included developing (using the Python language) and testing two mai
 * Monte Carlo Simulation (MC)
 
 ![Primary Algorithms](./figures/2-Models-sm.png)
+
+Basically, we plugged our models into the Zipline.io framework by deriving from Zipline's `TradingAlgorithm` Python base class and implementing our own `_handle_data` functions. For more information, refer to the [Zipline documenation](http://www.zipline.io/beginner-tutorial.html).
 
 ### Fast Fourier Transform
 
@@ -309,7 +318,9 @@ Based on the p-value \(\approx `r round(pVal, 4)`\) we do not reject the null hy
 
 After developing and testing 2 main models combined with a position sizing Kelly Criterion, we found our models were not much better than keeping our money under our pillows. And surprisingly, neither model was significantly better than the other. Possibly with a broader test set (i.e. more stocks) we could better discern a difference between the methods. With that said, we believe the models are a good place to start for further tuning and improvement. 
 
-Mathematical models are notoriously poor at predicting outside their original data set range, and predicting the future (an unknown) is implicitly outside the data set range. The approach we took was generic for any stock or mutual fund, but developing more specific approaches, based on industry or security type, might yield improved results. 
+Mathematical models are notoriously poor at predicting outside their original data set range, and predicting the future (an unknown) is implicitly outside the data set range. The approach we took was generic for any stock or mutual fund, but developing more specific approaches, based on industry or security type, might yield improved results.
+
+The original code, test results, paper and presentation are available in the [stockyPuck repository on Github](https://github.com/dwdii/stockyPuck) `r citep(bibGithub)`.
 
 ## Referernces
 
