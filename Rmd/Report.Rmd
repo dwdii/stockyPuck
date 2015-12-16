@@ -58,15 +58,15 @@ How do these analysts model the stock price in a way that they can successfully 
 
 With this in mind, we decided to use the [Zipline.io framework](https://github.com/quantopian/zipline) from the team at [Quantopian, Inc](https://www.quantopian.com/) to test some mathematical modeling ideas against real-world historical stock activity `r citep(bibZiplineIO)`. The Zipline framework makes it very straight forward to focus on the algorithm, while the framework brings in the historical pricing for specified securities, and helps track portfolio value and position over time. There are many features of Zipline we did not use such as commissions and slippage. Rather we focused on the raw behaviour of our algorithms.
 
-Our approach included developing (using the Python language) and testing two main models which both fed into a "position sizer" which helped us choose how much to buy or sell as a result of the predictions from the main algorithms. 
+Basically, we plugged our models into the Zipline.io framework by deriving from Zipline's `TradingAlgorithm` Python base class and implementing our own `_handle_data` functions. The `_handle_data` function is called for each iteration of a trading day and allows the associated model to reposition the portfolio based on any new information (i.e. that day's current stock price). For more information, refer to the [Zipline documenation](http://www.zipline.io/beginner-tutorial.html).
+
+Our approach included developing (using the Python language) and testing two main models. These models where distinct, but followed the same structure of feeding their output into a "position sizer" which helped us choose how much to buy or sell as a result of the predictions from the given algorithm. 
 
 * Fast Fourier Transform (FFT)
 
 * Monte Carlo Simulation (MC)
 
 ![Primary Algorithms](./figures/2-Models-sm.png)
-
-Basically, we plugged our models into the Zipline.io framework by deriving from Zipline's `TradingAlgorithm` Python base class and implementing our own `_handle_data` functions. For more information, refer to the [Zipline documenation](http://www.zipline.io/beginner-tutorial.html).
 
 ### Fast Fourier Transform
 
