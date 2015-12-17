@@ -1,6 +1,6 @@
 ---
 title: "stockyPuck Models for Zipline.io"
-subtitle: "IS609 Mathematical Modeling - CUNY"
+#subtitle: "IS609 Mathematical Modeling - CUNY"
 author: "Daniel Dittenhafer & Justin Hink"
 date: "December 20, 2015"
 output: pdf_document
@@ -81,7 +81,7 @@ Our approach included developing (using the Python language) and testing two mai
 
 ### Fast Fourier Transform
 
-A staple of undergraduate electrical and computer engineering programs is the Fourier Transform.  In those domains, it is primarily used in the analysis of electronic signals.  Conceptually, it is a technique used to transform time series data into an equivalent signal in the frequency domain.  Mathematically, it looks like this for a given time series g(t):
+A staple of undergraduate electrical and computer engineering programs is the Fourier Transform.  In those domains, it is primarily a tool used in the analysis of electronic signals.  Conceptually, it is a technique used to transform time series data into an equivalent signal in the frequency domain.  Mathematically, it looks like this for a given time series signal g(t):
 
 $$
 \begin{aligned}
@@ -106,11 +106,11 @@ $$
 \includegraphics{./figures/fdomainEx-sm.png}
 \end{center}
 
-At first this may all seem fairly irrelevant to financial markets but there is one key similarity.  Both an electric signal and a stock chart are, at a fundamental level, a time series of data points.  Given that then, perhaps some of the common techniques to clean electrical signals can be applied to financial data.
+At first this may all seem fairly irrelevant to financial markets but there is a key similarity.  Both an electric signal and a stock chart are, at a fundamental level, a time series of data points.  Given that then, perhaps some of the common techniques to clean electrical signals can be applied to financial data.
 
 One such technique is low pass frequency filtering.  A low pass frequency filter removes the high frequency components of a signal.  In the context of the above example, if we filtered out all frequencies higher than 60 Hz, we'd be left with a frequency spectrum plot that has only one remaining spike (at 50Hz).  
 
-Trading thesis:  a financial time series is just a noisy signal.  If we remove the high frequency components of the signal (the noise), we will be left with a purer signal.  This filtered signal would represent the "true" price of a given equity throughout time.  With knowledge of what the true price is, we can contrast that with the current market price and make trading decisions off of that gap.
+Trading thesis:  a financial time series is just a noisy signal.  If we remove the high frequency components of the signal (the noise), we will be left with a purer signal.  This filtered signal would represent the "true" price of a given equity throughout time.  With knowledge of what the current true price is, we can contrast that with the current market price and make trading decisions based off of that discrepency.
 
 The following is a stock chart for General Electric.  The green line represents the market price throughout time.  The blue, smooth line is the filtered signal using the above mentioned low pass filtering technique.
 
@@ -206,7 +206,31 @@ def monteCarloIteration(self, mean, std, start):
 
 ### Kelly Criterion
 
-**TBD - Justin**
+Both the Monte Carlo simulation and the Fourier Transform/Low Pass Filter techniques were used to gain a perceived edge on the market.  With that in hand, the question then becomes what to do with said edge.  Do we buy the stock, do we sell it?  Or do we even take a short position against it? To help with that decision we leveraged a mathematical model known as the Kelly Criterion.
+
+The Kelly Criterion was inroduced to the world in 1956 by the Bell Labs physicist John Kelly.  It's goal, simply put, is to maximize long term portfolio growth. In the case of a well diversified portfolio containing $n$ financial instrunments, the model looks as follows:
+
+$$
+\begin{aligned}
+growth=E\left[ ln\left( (1+r)+\sum _{ k=1 }^{ n }{ { u }_{ k }({ r }_{ k }-r) }  \right)  \right]     
+\end{aligned}
+$$
+
+Where $u_k$ is the fraction of the investment portfolio to be invested in the $k^{th}$ instrument and $r$ is a risk free rate of return generated from a readily available "safe" investment (cash or more accurately something like US Treasury bonds).  
+
+To maximize this growth then is to maximize the logorithmic relationship on the right side of the above equation.  This is a very involved quadratic programming problem, one that goes beyond the scope of this course (or at least the time constraints of this project).  In our specific case (a simple portfolio consisting of n shares of a 1 particular company and the rest held in "riskless" cash), a significant, well-known simplification exists.
+
+In this scenario, the fraction of the portfolio to allocate in the chosen equity can be determined as follows:
+
+$$
+\begin{aligned}
+{ f }^{ * }\quad =\quad \frac { p(b+1)-1 }{ b }
+\end{aligned}
+$$
+
+Where $f*$ is fraction of portfolio to allocate in the stock, $p$ probability of winning "bet" and $b$ is the net odds. Note that this fractional value that is returned is not guaranteed to be between 0 and 1.  A fractional value greater than 1 suggests that for optimal growth, financial leverage should be used to take a larger than otherwise possible long position in the stock.  A value less than 0 but greater than -1 suggests that a short position should be taken.  A value less than -1 suggests a leveraged short position should be taken to maximize overall portfolio growth.  The Kelly Criterion is notoriously aggressive when leverage constraints are not put in place.  As such, we limited our leverage to a maximum of 250% of total portfolio value.
+
+The implementation details of this algorithm can be found in the `kellyCriterion.py` source file that was submitted as part of the supplemental file `.zip` archive. 
 
 ## Findings
 
@@ -276,9 +300,9 @@ g1
 
 ```{r, message=FALSE, echo=FALSE, eval=TRUE}
 dfStatsRoi <- ddply(dfResMeltedRoi, .(Algorithm), summarize,
-            median=median(value),
-            mean=mean(value), 
-            sd=sd(value))
+            median=paste(round(median(value*100),1), "%"),
+            mean=paste(round(mean(value*100),1), "%"), 
+            sd=paste(round(sd(value*100),1), "%"))
 kable(dfStatsRoi, format.args=list(big.mark=","))
 ```
 
@@ -410,7 +434,7 @@ Based on the p-value \(\approx `r round(pVal, 4)`\) we do not reject the null hy
 
 After developing and testing 2 main models combined with a position sizing Kelly Criterion, we found our models were not much better than keeping our money under our pillows. And surprisingly, neither model was significantly better than the other. Possibly with a broader test set (i.e. more stocks) we could better discern a difference between the methods. With that said, we believe the models are a good place to start for further tuning and improvement. 
 
-Mathematical models are notoriously poor at predicting outside their original data set range, and predicting the future (an unknown) is implicitly outside the data set range. The approach we took was generic for any stock or mutual fund, but developing more specific approaches, based on industry or security type, might yield improved results.
+Mathematical models are notoriously poor at predicting outside their original data set range, and predicting the future (an unknown) is implicitly outside the data set range. The approach we took was generic for any stock or mutual fund, but developing more specific approaches, based on industry or security type, might yield improved results.  Also, we only considered the very simple scenario in which an investor is only actively trading one stock at a time.  In reality, this is almost never done professionally.  Further research may look into how our methods could be used to tease out true arbitrage opportunities between different financial instrunments.  
 
 The original code, test results, paper and presentation are available in the [stockyPuck repository on Github](https://github.com/dwdii/stockyPuck) `r citep(bibGithub)`.
 
