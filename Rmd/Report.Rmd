@@ -239,7 +239,7 @@ $$
 
 Where $u_k$ is the fraction of the investment portfolio to be invested in the $k^{th}$ instrument and $r$ is a risk free rate of return generated from a readily available "safe" investment (cash or more accurately something like US Treasury bonds).  
 
-To maximize this growth then is to maximize the logorithmic relationship on the right side of the above equation.  This is a very involved quadratic programming problem, one that goes beyond the scope of this course (or at least the time constraints of this project).  In our specific case (a simple portfolio consisting of n shares of a 1 particular company and the rest held in "riskless" cash), a significant, well-known simplification exists.
+To maximize this growth then is to maximize the logorithmic relationship on the right side of the above equation.  This is a very involved quadratic programming problem, one that goes beyond the scope of this course (or at least the time constraints of this project).  In our specific case (a simple portfolio consisting of \(n\) shares of 1 particular company and the rest held in "riskless" cash), a significant, well-known simplification exists.
 
 In this scenario, the fraction of the portfolio to allocate in the chosen equity can be determined as follows `r citep(bibKellyThorp)`:
 
@@ -249,7 +249,7 @@ $$
 \end{aligned}
 $$
 
-Where $f*$ is fraction of portfolio to allocate in the stock, $p$ probability of winning "bet" and $b$ is the net odds. Note that this fractional value that is returned is not guaranteed to be between 0 and 1.  A fractional value greater than 1 suggests that for optimal growth, financial leverage should be used to take a larger than otherwise possible long position in the stock.  A value less than 0 but greater than -1 suggests that a short position should be taken.  A value less than -1 suggests a leveraged short position should be taken to maximize overall portfolio growth.  The Kelly Criterion is notoriously aggressive when leverage constraints are not put in place.  As such, we limited our leverage to a maximum of 250% of total portfolio value.
+Where $f^*$ is the fraction of the portfolio to allocate in the stock, $p$ probability of winning "bet" and $b$ is the net odds. Note that this fractional value that is returned is not guaranteed to be between 0 and 1.  A fractional value greater than 1 suggests that for optimal growth, financial leverage should be used to take a larger than otherwise possible long position in the stock.  A value less than 0 but greater than -1 suggests that a short position should be taken.  A value less than -1 suggests a leveraged short position should be taken to maximize overall portfolio growth.  The Kelly Criterion is notoriously aggressive when leverage constraints are not put in place.  As such, we limited our leverage to a maximum of 250% of total portfolio value.
 
 The implementation details of this algorithm can be found in the `kellyCriterion.py` source file that was submitted as part of the supplemental file `.zip` archive. 
 
@@ -344,7 +344,7 @@ qqnorm(dfResults$FFT_EndPortfolioValue)
 qqline(dfResults$FFT_EndPortfolioValue) 
 ```
 
-As shown in the Q-Q plot, above, there are deviations from the normal distribution, but for our purposes we accept this a nearly normal and can move forward with the hypothesis test. The following `R` code computes the relevant statistics which are presented below.
+As shown in the Q-Q plot, above, there are deviations from the normal distribution, but for our purposes we accept this as nearly normal and can move forward with the hypothesis test. The following `R` code computes the relevant statistics which are presented below.
 
 ```{r, echo=TRUE}
 # Grab the raw statistics out of the data frame
