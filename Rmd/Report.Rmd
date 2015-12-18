@@ -1,6 +1,6 @@
 ---
 title: "stockyPuck Models for Zipline.io"
-#subtitle: "IS609 Mathematical Modeling - CUNY"
+subtitle: "IS609 Mathematical Modeling - CUNY"
 author: "Daniel Dittenhafer & Justin Hink"
 date: "December 20, 2015"
 output: pdf_document
@@ -42,6 +42,27 @@ bibSciPy <- bibentry(bibtype="Misc",
                      year=2015,
                      url="http://www.scipy.org/"
                      )
+
+bibKelly <- bibentry(bibtype="Misc",
+                     author=person(family="Kelly, Jr.", given="J.L"),
+                     title="A New Interpretation of Information Rate",
+                     year=1956,
+                     url="http://ieeexplore.ieee.org/stamp/stamp.jsp?reload=true&tp=&arnumber=6771227",
+                     urldate = "2015-12-17")
+
+bibKellyPortfolio <- bibentry(bibtype="Misc",
+                              author=person(family="Nekrasov", given="Vasily"),
+                              title="Kelly Criterion for Multivariate Portfolios: A Model-Free Approach",
+                              year=2014,
+                              url="http://papers.ssrn.com/sol3/papers.cfm?abstract_id=2259133",
+                              urldate="2015-12-17")
+
+bibKellyThorp <- bibentry(bibtype="Misc",
+                          author=person(family="Thorp", "Edward"),
+                          title="THE KELLY CRITERION IN BLACKJACK SPORTS BETTING, AND THE STOCK MARKET",
+                          year=2005,
+                          url="http://www.edwardothorp.com/sitebuildercontent/sitebuilderfiles/KellyCriterion2007.pdf",
+                          urldate="2015-12-17")
 
 # My ggplot theme
 myTheme <- theme(axis.ticks=element_blank(),
@@ -208,7 +229,7 @@ def monteCarloIteration(self, mean, std, start):
 
 Both the Monte Carlo simulation and the Fourier Transform/Low Pass Filter techniques were used to gain a perceived edge on the market.  With that in hand, the question then becomes what to do with said edge.  Do we buy the stock, do we sell it?  Or do we even take a short position against it? To help with that decision we leveraged a mathematical model known as the Kelly Criterion.
 
-The Kelly Criterion was inroduced to the world in 1956 by the Bell Labs physicist John Kelly.  It's goal, simply put, is to maximize long term portfolio growth. In the case of a well diversified portfolio containing $n$ financial instrunments, the model looks as follows:
+The Kelly Criterion was introduced to the world in 1956 by the Bell Labs physicist John Kelly `r citep(bibKelly)`.  It's goal, simply put, is to maximize long term portfolio growth. In the case of a well diversified portfolio containing $n$ financial instrunments, the model looks as follows `r citep(bibKellyPortfolio)`:
 
 $$
 \begin{aligned}
@@ -220,7 +241,7 @@ Where $u_k$ is the fraction of the investment portfolio to be invested in the $k
 
 To maximize this growth then is to maximize the logorithmic relationship on the right side of the above equation.  This is a very involved quadratic programming problem, one that goes beyond the scope of this course (or at least the time constraints of this project).  In our specific case (a simple portfolio consisting of n shares of a 1 particular company and the rest held in "riskless" cash), a significant, well-known simplification exists.
 
-In this scenario, the fraction of the portfolio to allocate in the chosen equity can be determined as follows:
+In this scenario, the fraction of the portfolio to allocate in the chosen equity can be determined as follows `r citep(bibKellyThorp)`:
 
 $$
 \begin{aligned}
