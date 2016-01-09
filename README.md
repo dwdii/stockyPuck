@@ -13,6 +13,7 @@ Several trading algorithms were implemented in Python using Zipline.io framework
 
 ![Models Diagram](https://raw.githubusercontent.com/dwdii/stockyPuck/master/Rmd/figures/2-Models-sm.png)
 
+
 An overview of the project and results can be found in the
-[presentation slides](https://htmlpreview.github.io/?https://github.com/dwdii/stockyPuck/blob/master/Rmd/Presentation.html#1).
+[presentation slides](https://htmlpreview.github.io/?https://github.com/dwdii/stockyPuck/blob/master/Rmd/Presentation.html#1) or through our [presentation video on YouTube](https://www.youtube.com/watch?v=86jEh6YwEhw).
 
